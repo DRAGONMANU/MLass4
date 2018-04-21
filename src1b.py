@@ -1,8 +1,7 @@
 import numpy as np
 
 from sklearn.decomposition import PCA
-import svm
-from svmutil import *
+from sklearn.svm import SVC
 
 train_banana = np.load('train/banana.npy')
 train_bulldozer = np.load('train/bulldozer.npy')
@@ -55,6 +54,22 @@ print(reduced.shape)
 train_labels = []
 for i in range(len(train)):
     train_labels.append(int(i/5000))
-m = svm_train(train_labels,reduced,'-g 0.05 -c 5')
 
-p_label, p_acc, p_val = svm_predict(train_labels, reduced, m)
+svm = SVC(kernel='linear',decision_function_shape='ovo',verbose=True)
+svm.fit(reduced,train_labels)
+
+print("Train acc = ", svm.score(reduced,train_labels))
+
+
+test_reduced = pca.transform(test)
+test_labels = svm.predict(test_reduced)
+labels = ["banana", "bulldozer", "chair", "eyeglasses", "flashlight", "foot", "hand", "harp", "hat", "keyboard",
+          "laptop", "nose", "parrot", "penguin", "pig", "skyscraper", "snowman", "spider", "trombone", "violin"]
+with open('svm_submission.csv', 'w') as f:
+    f.write("ID,CATEGORY")
+    f.write('\n')
+    for i in range(len(test_labels)):
+        f.write(str(i))
+        f.write(',')
+        f.write(labels[test_labels[i]])
+        f.write('\n')
