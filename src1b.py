@@ -2,6 +2,7 @@ import numpy as np
 
 from sklearn.decomposition import PCA
 from sklearn.svm import SVC
+from sklearn.preprocessing import normalize
 
 train_banana = np.load('train/banana.npy')
 train_bulldozer = np.load('train/bulldozer.npy')
@@ -55,10 +56,13 @@ train_labels = []
 for i in range(len(train)):
     train_labels.append(int(i/5000))
 
+reduced = normalize(reduced, axis=0)
+
 svm = SVC(kernel='linear',decision_function_shape='ovo',verbose=True)
 svm.fit(reduced,train_labels)
 
 print("Train acc = ", svm.score(reduced,train_labels))
+# ('Train acc = ', 0.47745)
 
 
 test_reduced = pca.transform(test)
@@ -73,3 +77,5 @@ with open('svm_submission.csv', 'w') as f:
         f.write(',')
         f.write(labels[test_labels[i]])
         f.write('\n')
+
+# 48.635
