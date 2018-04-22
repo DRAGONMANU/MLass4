@@ -47,25 +47,33 @@ train = np.append(train,train_violin,axis=0)
 
 test = np.load('test/test.npy')
 
-pca = PCA(n_components=50, copy=False)
-reduced = pca.fit_transform(train)
+# pca = PCA(n_components=50, copy=False)
 
-print(reduced.shape)
+# reduced = pca.fit_transform(train)
+# reduced = normalize(reduced, axis=1)
+# np.save("pca_norm_axis1",reduced)
+
+# test_reduced = pca.transform(test)
+# test_reduced = normalize(test_reduced, axis=1)
+# np.save("test_pca_norm_axis1",test_reduced)
+
+reduced = np.load("pca_norm_axis1.npy")
+test_reduced = np.load("test_pca_norm_axis1.npy")
+
 
 train_labels = []
 for i in range(len(train)):
     train_labels.append(int(i/5000))
 
-reduced = normalize(reduced, axis=0)
 
 svm = SVC(kernel='linear',decision_function_shape='ovo',verbose=True)
 svm.fit(reduced,train_labels)
 
 print("Train acc = ", svm.score(reduced,train_labels))
 # ('Train acc = ', 0.47745)
+# ('Train acc = ', 0.65346)
 
 
-test_reduced = pca.transform(test)
 test_labels = svm.predict(test_reduced)
 labels = ["banana", "bulldozer", "chair", "eyeglasses", "flashlight", "foot", "hand", "harp", "hat", "keyboard",
           "laptop", "nose", "parrot", "penguin", "pig", "skyscraper", "snowman", "spider", "trombone", "violin"]
@@ -78,4 +86,7 @@ with open('svm_submission.csv', 'w') as f:
         f.write(labels[test_labels[i]])
         f.write('\n')
 
-# 48.635
+# test 48.635
+# test 65.259
+
+# 19:06
