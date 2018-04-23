@@ -1,6 +1,7 @@
 from keras.models import Sequential
 from keras.layers import Dense, Dropout, Activation, Flatten
 import numpy as np
+from keras.models import model_from_json
 from keras.utils.np_utils import to_categorical
 
 
@@ -62,13 +63,51 @@ for i in range(len(train)):
 train_labels = to_categorical(train_labels, num_classes=20)
 
 model = Sequential()
-model.add(Dense(500, input_dim=784, activation='sigmoid'))
+model.add(Dense(1500, input_dim=784, activation='sigmoid'))
 model.add(Dense(20, activation='softmax'))
 model.compile(loss='categorical_crossentropy', optimizer='adam', metrics=['accuracy'])
 
-model.fit(train, train_labels, epochs=5, batch_size=4, verbose=1)
+model.fit(train, train_labels, epochs=10, batch_size=32, verbose=1)
+
+model_json = model.to_json()
+with open("model.json", "w") as json_file:
+    json_file.write(model_json)
+model.save_weights("model.h5")
 
 scores = model.evaluate(train, train_labels)
-
 print("train acc = ",scores[1]*100)
-# ('train acc = ', 56.837)
+
+# json_file = open('model.json', 'r')
+# loaded_model_json = json_file.read()
+# json_file.close()
+# loaded_model = model_from_json(loaded_model_json)
+# loaded_model.load_weights("model.h5")
+# loaded_model.compile(loss='categorical_crossentropy', optimizer='adam', metrics=['accuracy'])
+# test_labels = loaded_model.predict(test)
+test_labels = model.predict(test)
+print(test_labels[0])
+labels = ["banana", "bulldozer", "chair", "eyeglasses", "flashlight", "foot", "hand", "harp", "hat", "keyboard",
+          "laptop", "nose", "parrot", "penguin", "pig", "skyscraper", "snowman", "spider", "trombone", "violin"]
+with open('nn_submission.csv', 'w') as f:
+    f.write("ID,CATEGORY")
+    f.write('\n')
+    for i in range(len(test_labels)):
+        f.write(str(i))
+        f.write(',')
+        f.write(labels[np.argmax(test_labels[i])])
+        f.write('\n')
+
+
+# ('train acc = ', 54.946) e 1 b 32 h1000
+# ('train acc = ', 61.894) e 5 b 32 h1000
+# ('train acc = ', 63.814) e10 b32 h500
+# ('train acc = ', 65.568) e10 b32 h784
+# ('train acc = ', 65.726) e10 b32 h1000
+# ('train acc = ', 62.721) e10 b32 h1500
+
+# test 54.4 e1 b32 h1000
+# test 61.305 e5 b32 h1000
+# test 62.990 e10 b32 h500
+# test 64.437 e10 b32 h784
+# test 64.810 e10 b32 h1000
+# test 61.917 e10 b32 h1500
