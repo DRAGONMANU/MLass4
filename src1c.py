@@ -104,7 +104,7 @@ for epoch in range(num_epochs):
         labels = train_labels[i]
         labels = np.array(labels)
         # Convert torch tensor to Variable
-        images = Variable(torch.from_numpy(images).view(-1, 28*28)).float()
+        images = Variable(torch.from_numpy(images).view(28*28)).float()
         labels = Variable(torch.from_numpy(labels))
         
         # Forward + Backward + Optimize
