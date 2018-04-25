@@ -1,18 +1,16 @@
-import torch
-import torch.nn as nn
-import torchvision.datasets as dsets
-import torchvision.transforms as transforms
-from torch.autograd import Variable
+from keras.models import Sequential
+from keras.layers import Dense
 import numpy as np
+from keras.models import model_from_json
+from keras.utils.np_utils import to_categorical
 
 
 # Hyper Parameters 
-input_size = 784
+input_size = 28*28
 hidden_size = 500
-num_classes = 1 #20
+num_classes = 20
 num_epochs = 5
-batch_size = 100
-learning_rate = 0.001
+batch_size = 32
 
 train_banana = np.load('train/banana.npy')
 train_bulldozer = np.load('train/bulldozer.npy')
@@ -57,80 +55,57 @@ train = np.append(train, train_violin, axis=0)
 
 test = np.load('test/test.npy')
 
-# train_dataset = train
-
-# test_dataset = test
-# train_loader = torch.utils.data.DataLoader(dataset=train_dataset, 
-#                                            batch_size=batch_size, 
-#                                            shuffle=True)
-
-# test_loader = torch.utils.data.DataLoader(dataset=test_dataset, 
-#                                           batch_size=batch_size, 
-#                                           shuffle=False)
-
-# Neural Network Model (1 hidden layer)
-class Net(nn.Module):
-    def __init__(self, input_size, hidden_size, num_classes):
-        super(Net, self).__init__()
-        self.fc1 = nn.Linear(input_size, hidden_size) 
-        self.sigmoid = nn.Sigmoid()
-        self.fc2 = nn.Linear(hidden_size, num_classes)
-        self.soft = nn.Softmax()
-    
-    def forward(self, x):
-        out = self.fc1(x)
-        out = self.sigmoid(out)
-        out = self.fc2(out)
-        out = self.soft(out)
-        return out
-    
-net = Net(input_size, hidden_size, num_classes)
-
-    
-# Loss and Optimizer
-criterion = nn.NLLLoss()  
-optimizer = torch.optim.Adam(net.parameters(), lr=learning_rate)  
-
 train_labels = []
 for i in range(len(train)):
     train_labels.append(int(i/5000))
 
-train_labels = np.array(train_labels)
-# Train the Model
-for epoch in range(num_epochs):
-    # for i, (images, labels) in enumerate(train_loader):  
-    i = 0
-    for images in train:
-        labels = train_labels[i]
-        labels = np.array(labels)
-        # Convert torch tensor to Variable
-        images = Variable(torch.from_numpy(images).view(28*28)).float()
-        labels = Variable(torch.from_numpy(labels))
-        
-        # Forward + Backward + Optimize
-        optimizer.zero_grad()  # zero the gradient buffer
-        outputs = net(images)
-        loss = criterion(outputs, labels)
-        loss.backward()
-        optimizer.step()
-        
-        if (i+1) % 100 == 0:
-            print ('Epoch [%d/%d], Step [%d/%d], Loss: %.4f' 
-                   %(epoch+1, num_epochs, i+1, len(train_dataset)//batch_size, loss.data[0]))
-        i += 1
+train_labels = to_categorical(train_labels, num_classes=num_classes)
 
-# Train accuracy
-train_acc = 0
-i = 0
-for images in train:
-    labels = train_labels[i]
-    images = Variable(torch.from_numpy(images).view(-1, 28*28))
-    outputs = net(images)
-    predicted = int(outputs.data[0]*20)
-    if (predicted == labels):
-        correct += 1
+model = Sequential()
+model.add(Dense(hidden_size, input_dim=input_size, activation='sigmoid'))
+model.add(Dense(num_classes, activation='softmax'))
+model.compile(loss='categorical_crossentropy', optimizer='adam', metrics=['accuracy'])
 
-print('Train accuracy = ',correct / len(train_labels))
-# Save the Model
-torch.save(net.state_dict(), 'model.pkl')
-print("saved")
+model.fit(train, train_labels, epochs=num_epochs, batch_size=batch_size, verbose=1)
+
+model_json = model.to_json()
+with open("model.json", "w") as json_file:
+    json_file.write(model_json)
+model.save_weights("model.h5")
+
+scores = model.evaluate(train, train_labels)
+print("train acc = ",scores[1]*100)
+
+# json_file = open('model.json', 'r')
+# loaded_model_json = json_file.read()
+# json_file.close()
+# loaded_model = model_from_json(loaded_model_json)
+# loaded_model.load_weights("model.h5")
+# loaded_model.compile(loss='categorical_crossentropy', optimizer='adam', metrics=['accuracy'])
+# test_labels = loaded_model.predict(test)
+test_labels = model.predict(test)
+labels = ["banana", "bulldozer", "chair", "eyeglasses", "flashlight", "foot", "hand", "harp", "hat", "keyboard",
+          "laptop", "nose", "parrot", "penguin", "pig", "skyscraper", "snowman", "spider", "trombone", "violin"]
+with open('nn_submission.csv', 'w') as f:
+    f.write("ID,CATEGORY")
+    f.write('\n')
+    for i in range(len(test_labels)):
+        f.write(str(i))
+        f.write(',')
+        f.write(labels[np.argmax(test_labels[i])])
+        f.write('\n')
+
+
+# ('train acc = ', 54.946) e 1 b 32 h1000
+# ('train acc = ', 61.894) e 5 b 32 h1000
+# ('train acc = ', 63.814) e10 b32 h500
+# ('train acc = ', 65.568) e10 b32 h784
+# ('train acc = ', 65.726) e10 b32 h1000
+# ('train acc = ', 62.721) e10 b32 h1500
+
+# test 54.4 e1 b32 h1000
+# test 61.305 e5 b32 h1000
+# test 62.990 e10 b32 h500
+# test 64.437 e10 b32 h784
+# test 64.810 e10 b32 h1000
+# test 61.917 e10 b32 h1500
